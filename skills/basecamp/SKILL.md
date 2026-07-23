@@ -171,6 +171,7 @@ basecamp <cmd> --page 1     # First page only, no auto-pagination
 | Complete todo | `basecamp todos complete <id> --json` |
 | List cards | `basecamp cards list --in <project> --json` |
 | Create card | `basecamp cards create "Title" --in <project> --json` |
+| Update card body from a file | `basecamp cards update <id> --body - < body.md --in <project> --json` (a literal `-` reads the body from stdin; also works as the create body argument) |
 | Complete card | `basecamp cards done <id|url> --in <project> --json` |
 | Move card | `basecamp cards move <id> --to <column> [--position N] --in <project> --json` |
 | Move card to on-hold | `basecamp cards move <id> --on-hold --in <project> --json` |

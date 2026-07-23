@@ -389,6 +389,7 @@ func newCardsCreateCmd(project, cardTable *string) *cobra.Command {
 		Short: "Create a new card",
 		Long:  "Create a new card in a project's card table.",
 		Example: `  basecamp cards create "My card" --in myproject
+  basecamp cards create "My card" - --in myproject < body.md
   basecamp cards create --in myproject -- "--title with dashes"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Show help when invoked with no title
@@ -402,7 +403,11 @@ func newCardsCreateCmd(project, cardTable *string) *cobra.Command {
 			}
 			var content string
 			if len(args) > 1 {
-				content = args[1]
+				var stdinErr error
+				content, stdinErr = contentArgOrStdin(cmd, args[1:2])
+				if stdinErr != nil {
+					return stdinErr
+				}
 			}
 
 			app := appctx.FromContext(cmd.Context())
@@ -608,7 +613,8 @@ func newCardsUpdateCmd() *cobra.Command {
 
 You can pass either a card ID or a Basecamp URL:
   basecamp cards update 789 --title "new title"
-  basecamp cards update 789 --body "new body"`,
+  basecamp cards update 789 --body "new body"
+  basecamp cards update 789 --body - < body.md`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if strings.TrimSpace(title) == "" && strings.TrimSpace(content) == "" && due == "" && !cmd.Flags().Changed("assignee") && len(attachFiles) == 0 {
@@ -635,6 +641,12 @@ You can pass either a card ID or a Basecamp URL:
 			}
 			var mentionNotice string
 			var html string
+			if content != "" {
+				content, err = bodyFlagOrStdin(cmd, content)
+				if err != nil {
+					return err
+				}
+			}
 			if content != "" {
 				html = richtext.MarkdownToHTML(content)
 				html, err = resolveLocalImages(cmd, app, html)
@@ -695,7 +707,7 @@ You can pass either a card ID or a Basecamp URL:
 	}
 
 	cmd.Flags().StringVarP(&title, "title", "t", "", "New title")
-	cmd.Flags().StringVarP(&content, "body", "b", "", "New body content")
+	cmd.Flags().StringVarP(&content, "body", "b", "", `New body content ("-" reads from stdin)`)
 	cmd.Flags().StringVarP(&due, "due", "d", "", "Due date (natural language or YYYY-MM-DD)")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Assignee ID or name")
 	cmd.Flags().StringArrayVar(&attachFiles, "attach", nil, "Attach file (repeatable)")

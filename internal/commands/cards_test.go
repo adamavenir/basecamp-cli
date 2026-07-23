@@ -1598,6 +1598,48 @@ func TestCardsUpdateContentIsHTML(t *testing.T) {
 	assert.Contains(t, content, "<strong>bold</strong>")
 }
 
+func TestCardsCreateReadsDashBodyFromStdin(t *testing.T) {
+	transport := &mockCardCreateTransport{}
+	app := setupCardsMockApp(t, transport)
+
+	cmd := NewCardsCmd()
+	cmd.SetIn(strings.NewReader("Hello from stdin\n\n**works**\n"))
+	err := executeCommand(cmd, app, "create", "Title", "-", "--column", "12345")
+	require.NoError(t, err)
+	require.NotEmpty(t, transport.capturedBody)
+
+	var body map[string]any
+	err = json.Unmarshal(transport.capturedBody, &body)
+	require.NoError(t, err)
+
+	content, ok := body["content"].(string)
+	require.True(t, ok)
+	assert.Contains(t, content, "Hello from stdin")
+	assert.Contains(t, content, "<strong>works</strong>")
+	assert.NotContains(t, content, "<p>-</p>")
+}
+
+func TestCardsUpdateReadsDashBodyFromStdin(t *testing.T) {
+	transport := &mockCardCreateTransport{}
+	app := setupCardsMockApp(t, transport)
+
+	cmd := NewCardsCmd()
+	cmd.SetIn(strings.NewReader("Updated from stdin\n\n**works**\n"))
+	err := executeCommand(cmd, app, "update", "999", "--body", "-")
+	require.NoError(t, err)
+	require.NotEmpty(t, transport.capturedBody)
+
+	var body map[string]any
+	err = json.Unmarshal(transport.capturedBody, &body)
+	require.NoError(t, err)
+
+	content, ok := body["content"].(string)
+	require.True(t, ok)
+	assert.Contains(t, content, "Updated from stdin")
+	assert.Contains(t, content, "<strong>works</strong>")
+	assert.NotContains(t, content, "<p>-</p>")
+}
+
 func TestCardsUpdatePreservesHTMLBody(t *testing.T) {
 	transport := &mockCardCreateTransport{}
 	app := setupCardsMockApp(t, transport)

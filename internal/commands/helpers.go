@@ -87,6 +87,21 @@ func isMachineOutput(cmd *cobra.Command) bool {
 	return false
 }
 
+// bodyFlagOrStdin resolves a body-bearing flag value: a literal "-" reads the
+// body from stdin, mirroring contentArgOrStdin for positional content. Any
+// other value is returned as-is. Without this, `--body -` stores a literal
+// dash and silently destroys the existing body.
+func bodyFlagOrStdin(cmd *cobra.Command, value string) (string, error) {
+	if value != "-" {
+		return value, nil
+	}
+	b, err := io.ReadAll(cmd.InOrStdin())
+	if err != nil {
+		return "", output.ErrUsage(fmt.Sprintf("failed to read content from stdin: %v", err))
+	}
+	return string(b), nil
+}
+
 func readPipedStdin(cmd *cobra.Command) (string, bool, error) {
 	stdin := cmd.InOrStdin()
 	if f, ok := stdin.(*os.File); ok {
